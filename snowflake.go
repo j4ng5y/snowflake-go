@@ -1,3 +1,10 @@
+// Copyright 2020 Jordan Gregory. All rights reserved.
+// Use of this source code is governed by the license
+// that can be found in the LICENSE.txt file.
+
+// Package snowflake implements methods to generate
+// and unmarshal unique identifiers in the style of
+// Twitters snowflake network ID tool.
 package snowflake
 
 import (
@@ -8,12 +15,31 @@ import (
 	"time"
 )
 
+// Snowflake is the core structure to held data used to create
+// and unmarshal new snowflake identifiers.
 type Snowflake struct {
-	epoch             uint64
-	Timestamp         time.Time
-	InternalWorkerID  uint64
+	// epoch is used only to make the timestamp match custom
+	// timestamps that use a custom epoch, such as Discord.
+	epoch uint64
+
+	// Timestamp is used to generate the last 42 bits of the
+	// snowflake.
+	Timestamp time.Time
+
+	// InternalWorkerID is used to identify the worker that
+	// is generating this snowflake. This field makes up
+	// the 17th - 21st bits of the snowflake.
+	InternalWorkerID uint64
+
+	// InternalProcessID is used to identify the process of
+	// the worker that is generating this snowflake. This
+	// field makes up the 12th - 16th bits of the snowflake.
 	InternalProcessID uint64
-	IncrimentID       uint64
+
+	// IncrimentID is incremented each time a worker/process
+	// combo creates another identifier. This field makes up
+	// the first 11 bits of the snowflake.
+	IncrimentID uint64
 }
 
 func (S *Snowflake) parseTimestamp(u uint64) time.Time {
@@ -139,7 +165,14 @@ func (S *Snowflake) unmarshalUint64(v uint64) error {
 	return nil
 }
 
-// Unmarshal takes a value and inserts the relevant values into the Snowflake struct
+// Unmarshal takes a value and inserts the relevant values into
+// the parent instance of Snowflake.
+//
+// Arguments:
+//     value (interface{}): The value to unmarshal.
+//
+// Returns:
+//     (error): An error if one exists, nil otherwise.
 func (S *Snowflake) Unmarshal(value interface{}) error {
 	switch reflect.TypeOf(value).String() {
 	case "string":
@@ -169,6 +202,13 @@ func (S *Snowflake) Unmarshal(value interface{}) error {
 	}
 }
 
+// String returns the string value of this snowflake.
+//
+// Argumenets:
+//     None
+//
+// Returns:
+//     (string): The string value of the snowflake.
 func (S Snowflake) String() string {
 	s := (uint64(S.Timestamp.Unix()) - S.epoch) << 22
 	s = S.InternalWorkerID << 17
@@ -177,6 +217,13 @@ func (S Snowflake) String() string {
 	return fmt.Sprintf("%d", s)
 }
 
+// Int returns the value of this snowflake as in int type.
+//
+// Argumenets:
+//     None
+//
+// Returns:
+//     (int): The int value of the snowflake.
 func (S Snowflake) Int() int {
 	s := (uint64(S.Timestamp.Unix()) - S.epoch) << 22
 	s = S.InternalWorkerID << 17
@@ -185,6 +232,13 @@ func (S Snowflake) Int() int {
 	return int(s)
 }
 
+// Int64 returns the value of this snowflake as an int64 type.
+//
+// Argumenets:
+//     None
+//
+// Returns:
+//     (int64): The int64 value of the snowflake.
 func (S Snowflake) Int64() int64 {
 	s := (uint64(S.Timestamp.Unix()) - S.epoch) << 22
 	s = S.InternalWorkerID << 17
@@ -193,6 +247,13 @@ func (S Snowflake) Int64() int64 {
 	return int64(s)
 }
 
+// Uint returns the value of this snowflake as a uint type.
+//
+// Argumenets:
+//     None
+//
+// Returns:
+//     (uint): The uint value of the snowflake.
 func (S Snowflake) Uint() uint {
 	s := (uint64(S.Timestamp.Unix()) - S.epoch) << 22
 	s = S.InternalWorkerID << 17
@@ -201,6 +262,13 @@ func (S Snowflake) Uint() uint {
 	return uint(s)
 }
 
+// Uint64 returns the value of this snowflake as a uint64 type.
+//
+// Argumenets:
+//     None
+//
+// Returns:
+//     (uint64): The uint64 value of the snowflake.
 func (S Snowflake) Uint64() uint64 {
 	s := (uint64(S.Timestamp.Unix()) - S.epoch) << 22
 	s = S.InternalWorkerID << 17
@@ -209,46 +277,131 @@ func (S Snowflake) Uint64() uint64 {
 	return s
 }
 
-type SnowflakeOption func(*Snowflake)
+// Option is the interface for all Snowflake Options
+// to follow in order to modify a new Snowflake via the
+// NewWithOptions function.
+type Option func(*Snowflake)
 
+// New generates a new Snowflake with default values:
+//     * The standard UNIX epoch
+//     * The current time
+//     * A WorkerID of 0
+//     * A ProcessID of 0
+//     * An IncrimentID of 0
+//
+// Arguments:
+//     None
+//
+// Returns:
+//     (*Snowflake): A pointer to the new instance of Snowflake.
 func New() *Snowflake {
 	return &Snowflake{
 		Timestamp: time.Now(),
 	}
 }
 
-func WithEpoch(e uint64) SnowflakeOption {
+// WithEpoch is a function to set a custom epoch for generating
+// or parsing a Snowflake with a custom Epoch (such as Discord.)
+//
+// Arguments:
+//     e (uint64): The value of the epoch
+//
+// Returns:
+//     (Option): A Snowflake Option instance to be consumed
+//               by NewWithOptions.
+func WithEpoch(e uint64) Option {
 	return func(S *Snowflake) {
 		S.epoch = e
 	}
 }
 
-func WithSpecificTime(t time.Time) SnowflakeOption {
+// WithTime is a function to set a custom time for generating
+// or parsing a Snowflake.
+//
+// Arguments:
+//     t (time.Time): The value of the custom time
+//
+// Returns:
+//     (Option): A Snowflake Option instance to be consumed
+//               by NewWithOptions.
+func WithTime(t time.Time) Option {
 	return func(S *Snowflake) {
 		S.Timestamp = t
 	}
 }
 
-func WithSpecificWorkerID(id uint64) SnowflakeOption {
+// WithWorkerID is a function to set a custom WorkerID for
+// generating a Snowflake with a specific WorkerID.
+//
+// This Option has no bearing on how a WorkerID would be parsed
+// by the Unmarshal function.
+//
+// Arguments:
+//     id (uint64): The value of the WorkerID
+//
+// Returns:
+//     (Option): A Snowflake Option instance to be consumed
+//               by NewWithOptions.
+func WithWorkerID(id uint64) Option {
 	return func(S *Snowflake) {
 		S.InternalWorkerID = id
 	}
 }
 
-func WithSpecificProcessID(id uint64) SnowflakeOption {
+// WithProcessID is a function to set a custom ProcessID for
+// generating a Snowflake with a specific ProcessID.
+//
+// This Option has no bearing on how a ProcessID would be parsed
+// by the Unmarshal function.
+//
+// Arguments:
+//     id (uint64): The value of the ProcessID
+//
+// Returns:
+//     (Option): A Snowflake Option instance to be consumed
+//               by NewWithOptions.
+func WithProcessID(id uint64) Option {
 	return func(S *Snowflake) {
 		S.InternalProcessID = id
 	}
 }
 
-func WithSpecificIncrimentID(id uint64) SnowflakeOption {
+// WithIncrimentID is a function to set a custom IncrimentID for
+// generating a Snowflake with a specific IncrimentID.
+//
+// This Option has no bearing on how an IncrimentID would be parsed
+// by the Unmarshal function.
+//
+// Arguments:
+//     id (uint64): The value of the IncrimentID
+//
+// Returns:
+//     (Option): A Snowflake Option instance to be consumed
+//               by NewWithOptions.
+func WithIncrimentID(id uint64) Option {
 	return func(S *Snowflake) {
 		S.IncrimentID = id
 	}
 }
 
-func NewWithOptions(opts ...SnowflakeOption) *Snowflake {
-	S := &Snowflake{}
+// NewWithOptions generates a new Snowflake with custom
+// values, or uses the default value if an option is not
+// specified. Default values are:
+//     * The standard UNIX epoch
+//     * The current time
+//     * A WorkerID of 0
+//     * A ProcessID of 0
+//     * An IncrimentID of 0
+//
+// Arguments:
+//     None
+//
+// Returns:
+//     (*Snowflake): A pointer to the new instance of Snowflake.
+func NewWithOptions(opts ...Option) *Snowflake {
+	S := &Snowflake{
+		Timestamp: time.Now(),
+	}
 
 	for _, opt := range opts {
 		opt(S)

@@ -35,10 +35,10 @@ func Test_NewWithOptions(t *testing.T) {
 	now := time.Now()
 	S := NewWithOptions(
 		WithEpoch(12345),
-		WithSpecificTime(now),
-		WithSpecificWorkerID(12345),
-		WithSpecificProcessID(12345),
-		WithSpecificIncrimentID(12345))
+		WithTime(now),
+		WithWorkerID(12345),
+		WithProcessID(12345),
+		WithIncrimentID(12345))
 
 	if S.epoch != 12345 {
 		t.Logf("expected 12345, got %d", S.epoch)
