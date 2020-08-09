@@ -170,23 +170,43 @@ func (S *Snowflake) Unmarshal(value interface{}) error {
 }
 
 func (S Snowflake) String() string {
-	return "0"
+	s := (uint64(S.Timestamp.Unix()) - S.epoch) << 22
+	s = S.InternalWorkerID << 17
+	s = S.InternalProcessID << 12
+	s = S.IncrimentID << 0
+	return fmt.Sprintf("%d", s)
 }
 
 func (S Snowflake) Int() int {
-	return int(0)
+	s := (uint64(S.Timestamp.Unix()) - S.epoch) << 22
+	s = S.InternalWorkerID << 17
+	s = S.InternalProcessID << 12
+	s = S.IncrimentID << 0
+	return int(s)
 }
 
 func (S Snowflake) Int64() int64 {
-	return int64(0)
+	s := (uint64(S.Timestamp.Unix()) - S.epoch) << 22
+	s = S.InternalWorkerID << 17
+	s = S.InternalProcessID << 12
+	s = S.IncrimentID << 0
+	return int64(s)
 }
 
 func (S Snowflake) Uint() uint {
-	return uint(0)
+	s := (uint64(S.Timestamp.Unix()) - S.epoch) << 22
+	s = S.InternalWorkerID << 17
+	s = S.InternalProcessID << 12
+	s = S.IncrimentID << 0
+	return uint(s)
 }
 
 func (S Snowflake) Uint64() uint64 {
-	return uint64(0)
+	s := (uint64(S.Timestamp.Unix()) - S.epoch) << 22
+	s = S.InternalWorkerID << 17
+	s = S.InternalProcessID << 12
+	s = S.IncrimentID << 0
+	return s
 }
 
 type SnowflakeOption func(*Snowflake)
